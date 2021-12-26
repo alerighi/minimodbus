@@ -218,7 +218,7 @@ static MiniModbusError_t MiniModbus_SendRequestAndWaitResponse(MiniModbusContext
         return error;
     }
 
-    size_t header_size = RESPONSE_HEADER_LENGTH;
+    int header_size = RESPONSE_HEADER_LENGTH;
 
     switch (ctx->config.mode) {
     case MiniModbusMode_RTU:
@@ -364,9 +364,10 @@ MiniModbusError_t MiniModbus_WriteSingleRegister(MiniModbusContext_t *ctx, uint1
     return MiniModbusError_Success;
 }
 
+#endif /* MINIMODBUS_IMPLEMENTATION */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MINIMODBUS_IMPLEMENTATION */
 #endif /* MINIMODBUS_H */
