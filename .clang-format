@@ -1,0 +1,14 @@
+IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: WebKit
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 120
+PointerAlignment: Right
+BitFieldColonSpacing: Both
+AllowShortFunctionsOnASingleLine: Empty
+SortIncludes: false
+AllowShortEnumsOnASingleLine: false
+ReflowComments: true
+SpacesBeforeTrailingComments: 1
+SpaceBeforeParens: ControlStatements
