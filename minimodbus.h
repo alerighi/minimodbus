@@ -28,7 +28,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -94,9 +94,43 @@ MiniModbusError_t MiniModbus_Init(MiniModbusContext_t *ctx, const MiniModbusConf
 MiniModbusError_t MiniModbus_ReadHoldingRegister(MiniModbusContext_t *ctx, uint16_t reg, uint16_t *value);
 MiniModbusError_t MiniModbus_WriteSingleRegister(MiniModbusContext_t *ctx, uint16_t reg, uint16_t value);
 
+#ifdef __cplusplus
+};
+
+namespace minimodbus {
+
+class MiniModbus {
+    MiniModbusContext _ctx;
+
+  public:
+    MiniModbus(const MiniModbusConfig &config)
+    {
+        MiniModbus_Init(&_ctx, &config);
+    }
+
+    MiniModbusError ReadHoldingRegister(uint16_t reg, uint16_t *value)
+    {
+        return MiniModbus_ReadHoldingRegister(&_ctx, reg, value);
+    }
+
+    MiniModbusError WriteSingleRegister(uint16_t reg, uint16_t value)
+    {
+        return MiniModbus_WriteSingleRegister(&_ctx, reg, value);
+    }
+};
+
+}; // namespace minimodbus
+
+#endif /* __cplusplus */
+#endif /* MINIMODBUS_H */
+
 // define the following macro to add implementation
 // in a single C file in the project
 #ifdef MINIMODBUS_IMPLEMENTATION
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 #define FUNCTION_READ_HOLDING_REGISTER 0x03
 #define FUNCTION_WRITE_SINGLE_REGISTER 0x06
@@ -179,7 +213,8 @@ static MiniModbusError_t MiniModbus_PacketSend(MiniModbusContext_t *ctx)
     switch (ctx->config.mode) {
     case MiniModbusMode_RTU:
         crc = MiniModbus_Crc16(ctx->buffer, ctx->buffer_position);
-        MiniModbus_RequestAddUInt16(ctx, crc);
+        MiniModbus_RequestAddByte(ctx, crc & 0xFF);
+        MiniModbus_RequestAddByte(ctx, (crc >> 8) & 0xFF);
         break;
     case MiniModbusMode_TCP:
         // write length for TCP/IP header
@@ -260,7 +295,7 @@ static MiniModbusError_t MiniModbus_SendRequestAndWaitResponse(MiniModbusContext
     }
 
     uint16_t response_code = MiniModbus_ResponseReadByte(ctx);
-    uint8_t error_code;
+    uint8_t error_code = 0;
 
     // if not error, read rest of the response
     if ((response_code & ERROR_CODE_BITMASK) == 0) {
@@ -280,7 +315,7 @@ static MiniModbusError_t MiniModbus_SendRequestAndWaitResponse(MiniModbusContext
     switch (ctx->config.mode) {
     case MiniModbusMode_RTU:
         crc = MiniModbus_Crc16(ctx->buffer, total_received - 2);
-        if (ctx->buffer[total_received - 2] != ((crc >> 8) & 0xFF) || ctx->buffer[total_received - 1] != (crc & 0xFF)) {
+        if (ctx->buffer[total_received - 2] != (crc & 0xFF) || ctx->buffer[total_received - 1] != ((crc >> 8) & 0xFF)) {
             return MiniModbusError_InvalidCrc;
         }
         break;
@@ -308,8 +343,8 @@ MiniModbusError_t MiniModbus_Init(MiniModbusContext_t *ctx, const MiniModbusConf
         return MiniModbusError_InvalidArgument;
     }
 
+    memset(ctx, 0, sizeof(MiniModbusContext_t));
     memcpy(&ctx->config, config, sizeof(MiniModbusConfig_t));
-    memset(ctx->buffer, 0, MINIMODBUS_BUFFER_SIZE);
 
     return MiniModbusError_Success;
 }
@@ -364,10 +399,7 @@ MiniModbusError_t MiniModbus_WriteSingleRegister(MiniModbusContext_t *ctx, uint1
     return MiniModbusError_Success;
 }
 
-#endif /* MINIMODBUS_IMPLEMENTATION */
-
 #ifdef __cplusplus
 }
-#endif
-
-#endif /* MINIMODBUS_H */
+#endif /* __cplusplus */
+#endif /* MINIMODBUS_IMPLEMENTATION */
