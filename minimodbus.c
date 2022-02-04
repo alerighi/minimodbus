@@ -2,7 +2,7 @@
  * MiniModbus v1.0.0
  * Minimal implementation of the Modbus protocol.
  *
- * Copyright (c) 2021 Alessandro Righi <alessandro.righi@alerighi.it>
+ * Copyright (c) 2021-2022 Alessandro Righi <alessandro.righi@alerighi.it>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,120 +23,14 @@
  * SOFTWARE.
  */
 
-#ifndef MINIMODBUS_H
-#define MINIMODBUS_H
+#include "include/minimodbus.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
-
-#define MINIMODBUS_BUFFER_SIZE 256
-
-typedef enum MiniModbusError
-{
-    MiniModbusError_Success = 0,
-
-    // exception codes from Modbus standard
-    MiniModbusError_IllegalFunction = 0x01,
-    MiniModbusError_IllegalDataAddress = 0x02,
-    MiniModbusError_IllegalDataValue = 0x03,
-    MiniModbusError_ServerDeviceFailure = 0x04,
-    MiniModbusError_Acknowledge = 0x05,
-    MiniModbusError_ServerDeviceBusy = 0x06,
-    MiniModbusError_MemoryParityError = 0x08,
-    MiniModbusError_GatewayPathUnavailable = 0x0a,
-    MiniModbusError_GatewayTargetDeviceFailedToRespond = 0x0b,
-
-    // application error codes
-    MiniModbusError_Generic = -1,
-    MiniModbusError_InvalidArgument = -2,
-    MiniModbusError_Send = -3,
-    MiniModbusError_Receive = -4,
-    MiniModbusError_InvalidCrc = -5,
-    MiniModbusError_ResponseInvalidSlaveAddress = -6,
-    MiniModbusError_ResponseUnexpectedErrorCode = -7,
-    MiniModbusError_ResponseUnexpectedLength = -8,
-    MiniModbusError_ResponseInvalidCode = -9,
-    MiniModbusError_ResponseInvalid = -10,
-    MiniModbusError_ResponseInvalidTransactionIdentifier = -11,
-    MiniModbusError_ResponseInvalidProtocolIdentifier = -12,
-    MiniModbusError_ResponseInvalidLength = -13,
-} MiniModbusError_t;
-
-typedef enum MiniModbusMode
-{
-    MiniModbusMode_RTU = 0,
-    MiniModbusMode_TCP = 1,
-} MiniModbusMode_t;
-
-typedef struct MiniModbusConfig {
-    MiniModbusMode_t mode;
-    uint8_t slave_address;
-    void *user_data;
-    int (*receive)(void *user_data, uint8_t *data, size_t length);
-    int (*send)(void *user_data, const uint8_t *data, size_t length);
-} MiniModbusConfig_t;
-
-typedef struct MiniModbusContext {
-    MiniModbusConfig_t config;
-    size_t buffer_position;
-    uint16_t current_tcp_transaction_identifier;
-    uint8_t request_code;
-    uint8_t response_length;
-    uint8_t buffer[MINIMODBUS_BUFFER_SIZE];
-} MiniModbusContext_t;
-
-MiniModbusError_t MiniModbus_Init(MiniModbusContext_t *ctx, const MiniModbusConfig_t *config);
-MiniModbusError_t MiniModbus_ReadHoldingRegister(MiniModbusContext_t *ctx, uint16_t reg, uint16_t *value);
-MiniModbusError_t MiniModbus_WriteSingleRegister(MiniModbusContext_t *ctx, uint16_t reg, uint16_t value);
-
-#ifdef __cplusplus
-};
-
-namespace minimodbus {
-
-class MiniModbus {
-    MiniModbusContext _ctx;
-
-  public:
-    MiniModbus(const MiniModbusConfig &config)
-    {
-        MiniModbus_Init(&_ctx, &config);
-    }
-
-    MiniModbusError ReadHoldingRegister(uint16_t reg, uint16_t *value)
-    {
-        return MiniModbus_ReadHoldingRegister(&_ctx, reg, value);
-    }
-
-    MiniModbusError WriteSingleRegister(uint16_t reg, uint16_t value)
-    {
-        return MiniModbus_WriteSingleRegister(&_ctx, reg, value);
-    }
-};
-
-}; // namespace minimodbus
-
-#endif /* __cplusplus */
-#endif /* MINIMODBUS_H */
-
-// define the following macro to add implementation
-// in a single C file in the project
-#ifdef MINIMODBUS_IMPLEMENTATION
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
 
 #define FUNCTION_READ_HOLDING_REGISTER 0x03
 #define FUNCTION_WRITE_SINGLE_REGISTER 0x06
 #define ERROR_CODE_BITMASK 0x80
 #define RESPONSE_HEADER_LENGTH 2
-
 #define MODBUS_TCP_IP_PROTOCOL_IDENTIFIER 0
 
 static uint16_t MiniModbus_Crc16Table[] = {
@@ -339,7 +233,8 @@ static MiniModbusError_t MiniModbus_SendRequestAndWaitResponse(MiniModbusContext
 
 MiniModbusError_t MiniModbus_Init(MiniModbusContext_t *ctx, const MiniModbusConfig_t *config)
 {
-    if (ctx == NULL || config == NULL) {
+    if (ctx == NULL || config == NULL || config->receive == NULL || config->send == NULL ||
+        (config->mode != MiniModbusMode_RTU && config->mode != MiniModbusMode_TCP)) {
         return MiniModbusError_InvalidArgument;
     }
 
@@ -398,8 +293,3 @@ MiniModbusError_t MiniModbus_WriteSingleRegister(MiniModbusContext_t *ctx, uint1
 
     return MiniModbusError_Success;
 }
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-#endif /* MINIMODBUS_IMPLEMENTATION */

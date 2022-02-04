@@ -7,7 +7,7 @@ ColumnLimit: 120
 PointerAlignment: Right
 BitFieldColonSpacing: Both
 AllowShortFunctionsOnASingleLine: Empty
-SortIncludes: false
+SortIncludes: CaseSensitive
 AllowShortEnumsOnASingleLine: false
 ReflowComments: true
 SpacesBeforeTrailingComments: 1

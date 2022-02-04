@@ -2,7 +2,7 @@
  * MiniModbus v1.0.0
  * Minimal implementation of the Modbus protocol.
  *
- * Copyright (c) 2021 Alessandro Righi <alessandro.righi@alerighi.it>
+ * Copyright (c) 2021-2022 Alessandro Righi <alessandro.righi@alerighi.it>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,14 @@
  * SOFTWARE.
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 
-#define MINIMODBUS_IMPLEMENTATION
-#include "minimodbus.h"
+#include "include/minimodbus.h"
 
 int main()
 {
@@ -41,7 +39,6 @@ int main()
         perror("socket");
         exit(1);
     }
-    struct in_addr saddr;
 
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
@@ -56,10 +53,10 @@ int main()
     MiniModbusContext_t ctx = {0};
     MiniModbusConfig_t config = {
         .mode = MiniModbusMode_TCP,
-        .user_data = (void *)sockfd,
+        .user_data = (void *)((size_t)sockfd),
         .slave_address = 1,
-        .send = write,
-        .receive = read,
+        .send = (void *)write,
+        .receive = (void *)read,
     };
     MiniModbus_Init(&ctx, &config);
 
